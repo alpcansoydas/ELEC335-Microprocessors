@@ -1,8 +1,3 @@
-/*
- * asm.s
- */
-
-
 .syntax unified
 .cpu cortex-m0plus
 .fpu softvfp
@@ -19,9 +14,8 @@
 .word _ebss
 
 
-/* define peripheral addresses from RM0444 page 57, Tables 3-4 */
 .equ RCC_BASE,         (0x40021000)          // RCC base address
-.equ RCC_IOPENR,       (RCC_BASE   + (0x34)) // RCC IOPENR register offset
+.equ RCC_IOPENR,       (RCC_BASE   + (0x34)) // RCC IOPENR address=0x34 page174 IO Port clock enable register RCC_IOPENR
 
 .equ GPIOA_BASE,       (0x50000000)          // GPIOC base address
 .equ GPIOA_MODER,      (GPIOA_BASE + (0x00)) // GPIOC MODER register offset
@@ -104,44 +98,45 @@ Default_Handler:
 main:
 	/* enable GPIOA clock, bit2 on IOPENR */
  	ldr r6, =RCC_IOPENR
-	ldr r5, [r6]
+	ldr r5, [r6] //r5 HOLDS RCC_IOPENR REGISTER DATA
 	/* movs expects imm8, so this should be fine */
-	movs r4, 0x1
-	orrs r5, r5, r4
-	str r5, [r6]
+	movs r4, 0x1 // r4 holds  0001
+	orrs r5, r5, r4 // orr 0100 to make second bit of RCC_IOPENR
+	str r5, [r6] //store r5 reg data to address r6
 
 	/* setup PC6 for led 01 for bits 12-13 in MODER */
-	ldr r6, =GPIOA_MODER
-	ldr r5, [r6]
+	ldr r6, =GPIOA_MODER //r6 holds the GPIOA_MODER ADDRESS
+	ldr r5, [r6] //r5 holds GPIOA_MODER DATA
 	/* cannot do with movs, so use pc relative */
-	movs r4, 0x3
-	bics r5, r5, r4
-	movs r4, 0x1
-	orrs r5, r5, r4
-	str r5, [r6]
+	movs r4, 0x3 // r4 holds 0011
+	bics r5, r5, r4 //bitclear
+	movs r4, 0x1 // r4 holds 0001
+	orrs r5, r5, r4 // orr with r5
+	str r5, [r6] // store r5 data to GPIOA_MODER
 
-	ldr r6, =GPIOA_ODR
-	ldr r5, [r6]
-led_loop:
-	movs r4, 0x1
-	orrs r5, r5, r4
-	str r5, [r6]
+	ldr r6, =GPIOA_ODR // r6 holds GPIOA_ODR address
+	ldr r5, [r6] //r5 holds GPIOA_ODR data
+led_loop: //branch
+  	movs r4, 0x1 // r4 holds 0001
+	orrs r5, r5, r4 // orr with r5
+	str r5, [r6] //r5 holds GPIOA_ODR data
 
-	ldr r2,=0x28B0AA
-led_on:
-	subs r2,r2, #1
-	bne led_on
+	ldr r2,=0x28B0AA //r2 holds decimal 2666666 (for 1 sn blinking)
+led_on:  //branch
+	subs r2,r2, #1 //decrease 1 from r2
+	bne led_on //go to led_on branch (if branch not equal)
 
-	movs r4, 0x0
-	ands r5, r5, r4
-	str r5, [r6]
+	movs r4, 0x0 //r4 holds 0000
+	ands r5, r5, r4 // and with r5
+	str r5, [r6] //r5 holds GPIOA_ODR data (data reset)
 
-	ldr r2,=0x28B0AA
-led_off:
-	subs r2,r2, #1
-	bne led_off
+	ldr r2,=0x28B0AA //r2 holds decimal 2666666 (for 1 sn blinking)
+led_off:  //branch
+	subs r2,r2, #1 //decrease 1 from r2 
+	bne led_off //go to led_off branch (if branch not equal)
 
-	b led_loop
+	b led_loop //go to led_loop branch
+	
 	/* for(;;); */
 	b .
 
