@@ -1,0 +1,5 @@
+"./Src/main.o"
+"./Src/syscalls.o"
+"./Src/sysmem.o"
+"./Src/system_stm32g0xx.o"
+"./Startup/startup_stm32g031k8tx.o"
