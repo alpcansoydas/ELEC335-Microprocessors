@@ -1,66 +1,64 @@
 /*
  * main.c
- *
+ *	Author: Muhammed Cemal Eryigit
  */
 
 #include "stm32g0xx.h"
+#define  delayms 1600
 
-#define DELAY    1600000
+volatile uint32_t counter =0;//represent which digit the number is in
+volatile uint32_t port1=10;//keep number in variable port1
+volatile uint32_t port2=10;//keep number in variable port2
+volatile uint32_t port3=10;//keep number in variable port3
+volatile uint32_t port4=10;//keep number in variable port4
 
 void delay(volatile uint32_t);
 void gpio_config(void);
 void clock_config(void);
 void EXTI_config(void);
 void EXTI0_IRQHandler(void);
-void read(void);
-void number0(void);
-void number1(void);
-void number2(void);
-void number3(void);
-void number4(void);
-void number5(void);
-void number6(void);
-void number7(void);
-void number8(void);
-void number9(void);
+void check(void);
+void number0(void);//number function
+void number1(void);//number function
+void number2(void);//number function
+void number3(void);//number function
+void number4(void);//number function
+void number5(void);//number function
+void number6(void);//number function
+void number7(void);//number function
+void number8(void);//number function
+void number9(void);//number function
 
 int main(void)
 {
 	clock_config();
-	EXTI_config();
 	gpio_config();
-
-
-
+	EXTI_config();
     while(1)
     {
-    //	read();
+    	check();
     }
-
     return 0;
 }
+
 void clock_config(void)
 {
     /* Enable GPIOA and GPIOB clock */
     RCC->IOPENR |= (1U << 0);
     RCC->IOPENR |= (1U << 1);
-    RCC->APBENR2 = 0x1;
 }
 void EXTI_config(void)
 {
-	NVIC_EnableIRQ(EXTI_RTSR1_RT0);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT1);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT2);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT3);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT4);
-	/*NVIC_EnableIRQ(EXTI_RTSR1_RT5);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT6);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT7);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT8);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT9);
-	NVIC_EnableIRQ(EXTI_RTSR1_RT10);
-*/
-    EXTI->RTSR1 = 0x3FF;
+	EXTI->IMR1 |= (15U << 0);//Enable interrupt mask register
+    EXTI->FTSR1 = (15U << 0);//Enable Falling trigger register
+    EXTI->EXTICR[0] |= (1U << 8*0);//Enable interrupt
+    EXTI->EXTICR[0] |= (1U << 8*1);//Enable interrupt
+    EXTI->EXTICR[0] |= (1U << 8*2);//Enable interrupt
+    EXTI->EXTICR[0] |= (1U << 8*3);//Enable interrupt
+
+    NVIC_EnableIRQ(EXTI0_1_IRQn);//Enable NVIC EXTI0_1_IRQn
+    NVIC_EnableIRQ(EXTI2_3_IRQn);//Enable NVIC EXTI2_3_IRQn
+
 }
 void gpio_config(void)
 {
@@ -120,158 +118,1768 @@ void gpio_config(void)
 	GPIOB->MODER |= (1U << 2*7);
 }
 
-/*void read ()
+
+
+void EXTI0_1_IRQHandler(void)
 {
 
-	if(GPIOB->IDR ==0x1 &&GPIOB->ODR==0x10)
-		{
-		EXTI_RTSR1_RT0_IRQHandler();
-		}
-	if(GPIOB->IDR ==0x1 &&GPIOB->ODR==0x20)
-		{
-		EXTI_RTSR1_RT1_IRQHandler();
-		}
-	if(GPIOB->IDR ==0x1 &&GPIOB->ODR==0x30)
-		{
-		EXTI_RTSR1_RT2_IRQHandler();
-		}
-	if(GPIOB->IDR ==0x1 &&GPIOB->ODR==0x40)
-		{
-		EXTI_RTSR1_RT3_IRQHandler();
-		}
-
-	if(GPIOB->IDR ==0x2 &&GPIOB->ODR==0x10)
-		{
-
-		}
-	if(GPIOB->IDR ==0x2 &&GPIOB->ODR==0x20)
-		{
-
-		}
-	if(GPIOB->IDR ==0x2 &&GPIOB->ODR==0x30)
-		{
-
-		}
-	if(GPIOB->IDR ==0x2 &&GPIOB->ODR==0x40)
-		{
-
-		}
-
-	if(GPIOB->IDR ==0x3 &&GPIOB->ODR==0x10)
-		{
-
-		}
-	if(GPIOB->IDR ==0x3 &&GPIOB->ODR==0x20)
-		{
-
-		}
-	if(GPIOB->IDR ==0x3 &&GPIOB->ODR==0x30)
-		{
-
-		}
-	if(GPIOB->IDR ==0x3 &&GPIOB->ODR==0x40)
-		{
-
-		}
-
-	if(GPIOB->IDR ==0x4 &&GPIOB->ODR==0x10)
-		{
-
-		}
-	if(GPIOB->IDR ==0x4 &&GPIOB->ODR==0x20)
-		{
-
-		}
-	if(GPIOB->IDR ==0x4 &&GPIOB->ODR==0x30)
-		{
-
-		}
-	if(GPIOB->IDR ==0x4 &&GPIOB->ODR==0x40)
-		{
-
-		}
-}*/
-void EXTI_RTSR1_RT0_IRQHandler(void){
-
-	if(EXTI->RPR1 & 0x1)
+	if(EXTI->FPR1 & 0x1)	//keypad ABCD column
 	{
-		if(GPIOB->IDR ==0x1 &&GPIOB->ODR==0x10)
-		{
-			number0();
-			delay(DELAY);
-		}
-
-		EXTI->RPR1 = 0x1;
+		EXTI->FPR1 = 0xFF;	//reset Falling trigger flag
 	}
-
-}
-void EXTI_RTSR1_RT1_IRQHandler(void){
-
-	if(EXTI->RPR1 & 0x2)
+	if(EXTI->FPR1 & 0x2)	//keypad 963square column
 	{
-		number1();
-		delay(DELAY);
-		EXTI->RPR1 = 0x2;
-	}
-}
-void EXTI_RTSR1_RT2_IRQHandler(void){
+		//scanning to c2 column (963square)
+		GPIOB->ODR |=0x70;
+					if(GPIOB->IDR ==(0x7D))
+					{
+						number3();
+						GPIOB->ODR=0x0;
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+					}
+		GPIOB->ODR |=0xB0;
+					if(GPIOB->IDR ==(0xBD))
+					{
+						number6();
+						GPIOB->ODR =0x0;
+					}
+					else
+					{
+						GPIOB->ODR =0x0;
+					}
+		GPIOB->ODR |=0xD0;
+					if(GPIOB->IDR ==(0xDD))
+					{
+						number9();
+						GPIOB->ODR=0x0;
 
-	if(EXTI->RPR1 & 0x3)
-	{
-		number2();
-		delay(DELAY);
-		EXTI->RPR1 = 0x3;
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+					}
 	}
-}
-void EXTI_RTSR1_RT3_IRQHandler(void){
-
-	if(EXTI->RPR1 & 0x4)
-	{
-		number2();
-		delay(DELAY);
-		EXTI->RPR1 = 0x4;
-	}
+	EXTI->FPR1 = 0xFF;//reset falling trigger flag
 }
 
+void EXTI2_3_IRQHandler(void){
+
+	if(EXTI->FPR1 & 0x4) //keypad 2580 column
+	{
+		//scanning to c3 column (2580)
+		GPIOB->ODR |=0x70;
+					if(GPIOB->IDR ==(0x7B))
+					{
+						number2();
+						GPIOB->ODR=0x0;
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+					}
+		GPIOB->ODR |=0xB0;
+					if(GPIOB->IDR ==(0xBB))
+					{
+						number5();
+						GPIOB->ODR =0x0;
+					}
+					else
+					{
+						GPIOB->ODR =0x0;
+					}
+		GPIOB->ODR |=0xD0;
+					if(GPIOB->IDR ==(0xDB))
+					{
+						number8();
+						GPIOB->ODR=0x0;
+
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+
+					}
+		GPIOB->ODR |=0xE0;
+					if(GPIOB->IDR ==(0xEB))
+					{
+						number0();
+						GPIOB->ODR=0x0;
+					}
+					else
+					{
+						GPIOB->ODR =0x0;
+					}
+	}
+	if(EXTI->FPR1 & 0x8) //keypad 147* column
+	{
+		//scanning to c4 column (147*)
+		GPIOB->ODR |=0x70;
+					if(GPIOB->IDR ==(0x77))
+					{
+						number1();
+						GPIOB->ODR=0x0;
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+					}
+		GPIOB->ODR |=0xB0;
+					if(GPIOB->IDR ==(0xB7))
+					{
+						number4();
+						GPIOB->ODR =0x0;
+					}
+					else
+					{
+						GPIOB->ODR =0x0;
+					}
+		GPIOB->ODR |=0xD0;
+					if(GPIOB->IDR ==(0xD7))
+					{
+						number7();
+						GPIOB->ODR=0x0;
+
+					}
+					else
+					{
+						GPIOB->ODR=0x0;
+					}
+	}
+	EXTI->FPR1 = 0xFF;//reset falling trigger flag
+}
+void check() //output to ssd
+{
+	for(;;)
+		{
+			if(port1!=10 && port2==10 && port3==10 && port4==10)
+				{
+					GPIOA->ODR=port1;
+					delay(delayms);
+				}
+			else if(port1!=10 && port2!=10 && port3==10 && port4==10)
+				{
+					GPIOA->ODR=port1;
+					delay(delayms);
+					GPIOA->ODR=port2;
+					delay(delayms);
+				}
+			else if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+				{
+					GPIOA->ODR=port1;
+					delay(delayms);
+					GPIOA->ODR=port2;
+					delay(delayms);
+					GPIOA->ODR=port3;
+					delay(delayms);
+				}
+			else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				{
+					GPIOA->ODR=port1;
+					delay(delayms);
+					GPIOA->ODR=port2;
+					delay(delayms);
+					GPIOA->ODR=port3;
+					delay(delayms);
+					GPIOA->ODR=port4;
+					delay(delayms);
+				}
+		}
+}
  void number0(void)
  {
-	 GPIOA->ODR = 0xF3;
+
+	 if(counter==0)
+		 {
+			 counter++;
+			 GPIOA->ODR &=0x00;
+			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				 }
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+			 	 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+		 }
+	 else if(counter==1)
+		 {
+ 			 counter++;
+			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2=port1;
+					 port2|=0x1A00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+		 }
+	 else if(counter==2)
+		 {
+			 counter++;
+			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+					 }
+			 		}
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+
+	 else if(counter==3)
+		 {
+			 counter=0;
+			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0xF3;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+		 }
  }
  void number1(void)
  {
-	 GPIOA->ODR = 0x12;
+	 if(counter==0)
+		 {
+			 counter++;
+			 GPIOA->ODR &=0x00;
+			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+			 {
+				 EXTI->FPR1 = 0xFF;
+
+				 GPIOA->ODR &=0x00;
+				 GPIOA->ODR |=0x1C00;
+				 GPIOA->ODR |= 0x12;
+				 port1=GPIOA->ODR;
+				 GPIOA->ODR &=0x00;
+			 }
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+			 {
+				 EXTI->FPR1 = 0xFF;
+
+				 port1 &=0x1FF;
+				 port2 &=0x1FF;
+				 port3 &=0x1FF;
+				 port4 &=0x1FF;
+				 port4=port3;
+				 port3=port2;
+				 port2=port1;
+				 port2|=0x1A00;
+				 port3|=0x1600;
+				 port4|=0xE00;
+				 GPIOA->ODR &=0x00;
+				 GPIOA->ODR |=0x1C00;
+				 GPIOA->ODR |= 0x12;
+				 port1=GPIOA->ODR;
+				 GPIOA->ODR &=0x00;
+			}
+	 	}
+	 	else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+
+						 port1 &=0x1FF;
+						 port2=port1;
+						 port2|=0x1A00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+	 		 }
+	 	else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+	 		 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+
+	 	else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+				 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x12;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+		 }
+
  }
  void number2(void)
  {
-	 GPIOA->ODR = 0x163;
+	 if(counter==0)
+		 {
+			 counter++;
+			 GPIOA->ODR &=0x00;
+			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				 }
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+	 	}
+	 else if(counter==1)
+		 {
+			 counter++;
+			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2=port1;
+					 port2|=0x1A00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+		 }
+	 else if(counter==2)
+		 {
+			 counter++;
+			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+					 }
+				}
+	 	 	 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x163;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+	  else if(counter==3)
+		 {
+			 counter=0;
+			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+	 		else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+				 {
+					 EXTI->FPR1 = 0xFF;
+					 port1 &=0x1FF;
+					 port2 &=0x1FF;
+					 port3 &=0x1FF;
+					 port4 &=0x1FF;
+					 port4=port3;
+					 port3=port2;
+					 port2=port1;
+					 port2|=0x1A00;
+					 port3|=0x1600;
+					 port4|=0xE00;
+					 GPIOA->ODR &=0x00;
+					 GPIOA->ODR |=0x1C00;
+					 GPIOA->ODR |= 0x163;
+					 port1=GPIOA->ODR;
+					 GPIOA->ODR &=0x00;
+				}
+	 	 }
+
  }
  void number3(void)
  {
-	 GPIOA->ODR = 0x133;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x133;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+					 {
+						 EXTI->FPR1 = 0xFF;
+
+						 port1 &=0x1FF;
+						 port2 &=0x1FF;
+						 port3 &=0x1FF;
+						 port4 &=0x1FF;
+						 port4=port3;
+						 port3=port2;
+						 port2=port1;
+						 port2|=0x1A00;
+						 port3|=0x1600;
+						 port4|=0xE00;
+						 GPIOA->ODR &=0x00;
+						 GPIOA->ODR |=0x1C00;
+						 GPIOA->ODR |= 0x133;
+						 port1=GPIOA->ODR;
+						 GPIOA->ODR &=0x00;
+					}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x133;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+						 {
+							 EXTI->FPR1 = 0xFF;
+							 port1 &=0x1FF;
+							 port2 &=0x1FF;
+							 port3 &=0x1FF;
+							 port4 &=0x1FF;
+							 port4=port3;
+							 port3=port2;
+							 port2=port1;
+							 port2|=0x1A00;
+							 port3|=0x1600;
+							 port4|=0xE00;
+							 GPIOA->ODR &=0x00;
+							 GPIOA->ODR |=0x1C00;
+							 GPIOA->ODR |= 0x133;
+							 port1=GPIOA->ODR;
+							 GPIOA->ODR &=0x00;
+						}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x133;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x133;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x133;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x133;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
  void number4(void)
  {
-	 GPIOA->ODR = 0x192;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x192;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x192;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x192;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x192;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x192;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x192;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x192;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x192;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
  void number5(void)
  {
-	 GPIOA->ODR = 0x1B1;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x1B1;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x1B1;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
+
  void number6(void)
  {
-	 GPIOA->ODR = 0x1F1;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x1F1;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x1F1;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F1;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F1;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
  void number7(void)
  {
-	 GPIOA->ODR = 0x13;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x13;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x13;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x13;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x13;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x13;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x13;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x13;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x13;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
  }
  void number8(void)
  {
-	 GPIOA->ODR = 0x1F3;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x1F3;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x1F3;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1F3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1F3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
  void number9(void)
  {
-	 GPIOA->ODR = 0x1B3;
+	 if(counter==0)
+	 		 {
+	 			 counter++;
+	 			 GPIOA->ODR &=0x00;
+	 			 if((port1==10) && (port2==10) && (port3==10) && (port4==10))
+	 			 {
+	 				 EXTI->FPR1 = 0xFF;
+
+	 				 GPIOA->ODR &=0x00;
+	 				 GPIOA->ODR |=0x1C00;
+	 				 GPIOA->ODR |= 0x1B3;
+	 				 port1=GPIOA->ODR;
+	 				 GPIOA->ODR &=0x00;
+	 			 }
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 {
+	 			 		 			 EXTI->FPR1 = 0xFF;
+
+	 					 			 port1 &=0x1FF;
+	 					 			 port2 &=0x1FF;
+	 					 			 port3 &=0x1FF;
+	 					 			 port4 &=0x1FF;
+	 					 			 port4=port3;
+	 					 			 port3=port2;
+	 					 			 port2=port1;
+	 					 			 port2|=0x1A00;
+	 					 			 port3|=0x1600;
+	 					 			 port4|=0xE00;
+	 					 			 GPIOA->ODR &=0x00;
+	 					 			 GPIOA->ODR |=0x1C00;
+	 					 			 GPIOA->ODR |= 0x1B3;
+	 					 			 port1=GPIOA->ODR;
+	 					 			 GPIOA->ODR &=0x00;
+	 			 		 		}
+
+
+	 		 }
+	 		 else if(counter==1)
+	 		 {
+	  			 counter++;
+	 			 if(port1!=10 && port2==10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+	 		 else if(counter==2)
+	 		 {
+	 			 counter++;
+	 			 if(port1!=10 && port2!=10 && port3==10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 }
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+
+	 		 else if(counter==3)
+	 		 {
+	 			 counter=0;
+	 			 if(port1!=10 && port2!=10 && port3!=10 && port4==10)
+	 			 		 {
+	 			 			 EXTI->FPR1 = 0xFF;
+
+	 			 			 port1 &=0x1FF;
+	 			 			 port2 &=0x1FF;
+	 			 			 port3 &=0x1FF;
+	 			 			 port4=port3;
+	 			 			 port3=port2;
+	 			 			 port2=port1;
+	 			 			 port2|=0x1A00;
+	 			 			 port3|=0x1600;
+	 			 			 port4|=0xE00;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 			 GPIOA->ODR |=0x1C00;
+	 			 			 GPIOA->ODR |= 0x1B3;
+	 			 			 port1=GPIOA->ODR;
+	 			 			 GPIOA->ODR &=0x00;
+	 			 		}
+	 			 else if(port1!=10 && port2!=10 && port3!=10 && port4!=10)
+	 			 		 		 		 {
+	 			 		 		 			 EXTI->FPR1 = 0xFF;
+	 							 			 port1 &=0x1FF;
+	 							 			 port2 &=0x1FF;
+	 							 			 port3 &=0x1FF;
+	 							 			 port4 &=0x1FF;
+	 							 			 port4=port3;
+	 							 			 port3=port2;
+	 							 			 port2=port1;
+	 							 			 port2|=0x1A00;
+	 							 			 port3|=0x1600;
+	 							 			 port4|=0xE00;
+	 							 			 GPIOA->ODR &=0x00;
+	 							 			 GPIOA->ODR |=0x1C00;
+	 							 			 GPIOA->ODR |= 0x1B3;
+	 							 			 port1=GPIOA->ODR;
+	 							 			 GPIOA->ODR &=0x00;
+	 			 		 		 		}
+	 		 }
+
  }
 
 void delay(volatile uint32_t s)
